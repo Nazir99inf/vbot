@@ -48,7 +48,7 @@ let handler = async (m, { conn, text }) => {
             ],
             m
         );
-        const audio = await fetch(global.useProxy ? global.proxyUrl + player.url : player.url;, { headers: { Range: `bytes=0-${Number(player.contentLength) + 50826}` } });
+        const audio = await fetch(global.useProxy ? global.proxyUrl + player.url : player.url, { headers: { Range: `bytes=0-${Number(player.contentLength) + 50826}` } });
         const mp3 = Buffer.from(await audio.arrayBuffer());
         const input = path.join(process.cwd() + "/tmp", `input-${data.videoId}.m4a`);
         const output = path.join(process.cwd() + "/tmp", `yta-${data.videoId}.mp3`);
