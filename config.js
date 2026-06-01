@@ -41,7 +41,7 @@ global.wm = "© Nazir";
 global.author = "\nNazir";
 
 /*--------[ FUNCITIONS ]------------*/
-global.Func = new (require(process.cwd() + "/lib/func"))();
+global.Func = require("./lib/func");
 global.axios = require("axios");
 global.cheerio = require("cheerio");
 global.Uploader = require("./lib/uploader");
