@@ -82,9 +82,7 @@ class Client {
                         process.stdout.write("\r\x1b[K");
                     }
                     console.log(`Bot Connected on ${conn.decodeJid(conn.user.id).split("@")[0]}`);
-                    conn.user.name = JSON.parse(
-    fs.readFileSync(`./${global.sessionname}/creds.json`, "utf8")
-).me.name
+                    conn.user.name = JSON.parse(fs.readFileSync(`./${global.sessionname}/creds.json`, "utf8")).me.name;
                     if (!conn.alias) conn.alias = {};
                     db.data.store.groupMetadata = await this.conn.groupFetchAllParticipating();
                 }
@@ -185,6 +183,28 @@ class Client {
                 console.error("GetFile Error:", error);
             }
             return { res: buffer, filename, mime, ext: extension, data: buffer };
+        };
+        this.conn.appendTextMessage = async (m, text) => {
+            let messages = await this.bail.generateWAMessage(
+                m.chat,
+                {
+                    text: text,
+                    mentions: m.mentionedJid
+                },
+                {
+                    userJid: conn.user.id,
+                    quoted: m.quoted && m.quoted.fakeObj
+                }
+            );
+            messages.key.fromMe = this.bail.areJidsSameUser(m.sender, conn.user.id);
+            messages.key.id = [...Array(21)].map(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[(Math.random() * 36) | 0]).join("") || m.key.id;
+            messages.pushName = m.pushName;
+            if (m.isGroup) messages.participant = m.sender;
+            this.conn.ev.emit("messages.upsert", {
+                messages: [this.bail.proto.WebMessageInfo.create(messages)],
+                type: "notify"
+            });
+            return messages;
         };
         this.conn.sendAliasMessage = async (jid, mess = {}, alias = [], quoted = null) => {
             try {
