@@ -1,93 +1,93 @@
-import axios from "axios";
-import spotify from '../../scraper/spotify.js'
+import spotify from "../../scraper/spotify.js";
+
 const handler = async (m, { conn, text, args, usedPrefix, command }) => {
-  if (!text) throw `* *Example :* ${usedPrefix + command} *[Songname/spotifyUrl]*`;
-  if (/open\.spotify\.com/.test(args[0])) {
-    let metadata = await spotify.download(args[0])
+  if (!text)
+    throw `Example:\n${usedPrefix + command} faded\n${usedPrefix + command} https://open.spotify.com/track/...`;
+
+  if (/open\.spotify\.com\/track/i.test(text)) {
+    const data = await spotify.download(text);
+
+    if (!data?.download)
+      throw "Gagal mendapatkan audio.";
+
     const caption = `*乂 S P O T I F Y - M U S I C*
-◦   Title : ${metadata.title || ""}
-◦   Artist : ${metadata.artis || ""}
-◦   Duration : ${Math.floor(metadata.durasi / 60000)}:${String(Math.floor((metadata.durasi % 60000) / 1000)).padStart(2, "0")}
+
+◦ Title : ${data.name}
+◦ Artist : ${
+      Array.isArray(data.artist)
+        ? data.artist.map(v => v.name).join(", ")
+        : "-"
+    }
+◦ Duration : ${Math.floor(data.duration_ms / 60000)}:${String(
+      Math.floor((data.duration_ms % 60000) / 1000)
+    ).padStart(2, "0")}
 `;
-    const reply = await conn.sendMessage(
-      m.chat,
-      {
-        text: caption,
-        contextInfo: {
-          isForwarded: true,
-          forwardingScore: 99999,
-          externalAdReply: {
-            title: metadata.title,
-            body: metadata.artis,
-            mediaType: 1,
-            thumbnailUrl: metadata.image,
-            renderLargerThumbnail: true
-          }
-        }
-      },
-      { quoted: m }
-    );
+
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: metadata.download },
-        mimetype: "audio/mpeg",
-        contextInfo: {
-          isForwarded: true,
-          forwardingScore: 99999
-        }
+        image: {
+          url: data.album?.images?.[0]?.url
+        },
+        caption
       },
-      { quoted: reply }
+      { quoted: m }
     );
-  } else {
-    const search = await spotify.search(text)
-    const first = search[0];
-    const cap = `*乂 S P O T I F Y - S E A R C H*
-*Example Download*
-.spotify ${first.link}
-*or*
-reply number 0 - ${search.length}
 
-*[+]* Total: ${search.length}
-${search
-  .map(
-    (a, i) =>
-      `_*Number*_ *[ ${i + 1} ]*
-- Title : ${a.title}
-- Artist: ${a.artists}
-- Popularity: ${a.popularity}
-- Url: ${a.link}`
-  )
-  .join("\n\n")}`;
-    await conn.sendAliasMessage(
+    await conn.sendMessage(
       m.chat,
       {
-        text: cap,
-        contextInfo: {
-          isForwarded: true,
-          forwardingScore: 99999,
-          externalAdReply: {
-            title: first.title,
-            body: first.artists,
-            mediaType: 1,
-            thumbnailUrl: first.image,
-            renderLargerThumbnail: true,
-            sourceUrl: first.link
-          }
-        }
+        audio: {
+          url: data.download
+        },
+        mimetype: "audio/mpeg",
+        fileName: `${data.name}.mp3`
       },
-      search.map((a, i) => ({
-        alias: `${i + 1}`,
-        response: `${usedPrefix + command} ${a.link}`
-      })),
-      m
+      { quoted: m }
     );
+
+    return;
   }
+
+  const result = await spotify.search(text);
+
+  const tracks = result.tracks || [];
+
+  if (!tracks.length)
+    throw "Lagu tidak ditemukan.";
+
+  const first = tracks[0];
+
+  let caption = `*乂 S P O T I F Y - S E A R C H*
+
+Reply angka untuk download.
+
+`;
+
+  caption += tracks
+    .slice(0, 10)
+    .map(
+      (v, i) => `*${i + 1}.* ${v.name}
+Artist: ${v.artists.map(a => a.name).join(", ")}
+Link: ${v.url}`
+    )
+    .join("\n\n");
+
+  await conn.sendAliasMessage(
+    m.chat,
+    {
+      text: caption
+    },
+    tracks.map((v, i) => ({
+      alias: String(i + 1),
+      response: `${usedPrefix + command} ${v.url}`
+    })),
+    m
+  );
 };
 
-handler.help = ["spotify", "sp"].map((v) => v + " [q/url]");
-handler.tags = ["downloader", "internet"];
+handler.help = ["spotify", "sp"];
+handler.tags = ["downloader"];
 handler.command = ["spotify", "sp"];
-handler.limit = 3;
 
 export default handler;
