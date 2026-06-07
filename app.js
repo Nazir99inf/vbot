@@ -192,7 +192,7 @@ class Client {
                     mentions: m.mentionedJid
                 },
                 {
-                    userJid: conn.user.id,
+                    userJid: m.sender || conn.user.id,
                     quoted: m.quoted && m.quoted.fakeObj
                 }
             );
